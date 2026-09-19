@@ -40,8 +40,8 @@ private struct HomeView: View {
                     header
                     SearchBar(text: $query, placeholder: "Clínica, especialidade ou região")
 
-                    if catalog.loadState == .failed {
-                        CatalogStatusView(state: catalog.loadState)
+                    if case .failed(let message) = catalog.loadState {
+                        ContentUnavailableView("Catálogo indisponível", systemImage: "exclamationmark.triangle", description: Text(message))
                     } else if isBrowsing {
                         browsingResults
                     } else {
@@ -115,8 +115,8 @@ private struct HomeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Buscar por especialidade").font(.title3.bold())
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 12)], spacing: 12) {
-                    ForEach(Array(catalog.specialtyRanking.prefix(6).enumerated()), id: \.element.name) { index, item in
-                        specialtyTile(item).accessibilityIdentifier("specialty-\(index)")
+                    ForEach(catalog.specialtyRanking.prefix(6)) { item in
+                        specialtyTile(item).accessibilityIdentifier("specialty-\(item.name)")
                     }
                 }
             }
@@ -125,7 +125,7 @@ private struct HomeView: View {
                 Text("Explorar por região").font(.title3.bold())
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(catalog.regionRanking.prefix(10), id: \.name) { item in
+                        ForEach(catalog.regionRanking.prefix(10)) { item in
                             Button {
                                 selectedRegion = item.name
                             } label: {
@@ -147,7 +147,7 @@ private struct HomeView: View {
         }
     }
 
-    private func specialtyTile(_ item: (name: String, count: Int)) -> some View {
+    private func specialtyTile(_ item: RankEntry) -> some View {
         let style = SpecialtyStyle.identity(for: item.name)
         return Button {
             selectedSpecialty = item.name
@@ -216,8 +216,8 @@ private struct ExploreView: View {
                     Text("\(results.count) clínica\(results.count == 1 ? "" : "s")")
                         .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
 
-                    if catalog.loadState == .failed {
-                        CatalogStatusView(state: catalog.loadState)
+                    if case .failed(let message) = catalog.loadState {
+                        ContentUnavailableView("Catálogo indisponível", systemImage: "exclamationmark.triangle", description: Text(message))
                     } else if results.isEmpty {
                         ContentUnavailableView("Nenhum resultado", systemImage: "magnifyingglass", description: Text("Ajuste a busca ou limpe os filtros."))
                     } else {
@@ -412,7 +412,7 @@ private struct ClinicDetailView: View {
     private var specialtiesBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Especialidades").font(.headline)
-            FlowLayout(spacing: 8) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
                 ForEach(clinic.normalizedSpecialties, id: \.self) { specialty in
                     let s = SpecialtyStyle.identity(for: specialty)
                     Text(specialty).font(.caption.weight(.semibold)).padding(.horizontal, 12).padding(.vertical, 6)
@@ -578,51 +578,6 @@ private struct SecondaryAction: View {
         }
         .buttonStyle(.bordered)
         .tint(Theme.cerrado)
-    }
-}
-
-private struct FlowLayout: Layout {
-    let spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? 0
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > width && x > 0 {
-                x = 0; y += rowHeight + spacing; rowHeight = 0
-            }
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: width, height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX && x > bounds.minX {
-                x = bounds.minX; y += rowHeight + spacing; rowHeight = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
-private struct CatalogStatusView: View {
-    let state: CatalogLoadState
-    var body: some View {
-        switch state {
-        case .loading:
-            ProgressView("Carregando catálogo…").frame(maxWidth: .infinity).padding(.vertical, 40)
-        case .loaded:
-            EmptyView()
-        case .failed(let message):
-            ContentUnavailableView("Catálogo indisponível", systemImage: "exclamationmark.triangle", description: Text(message))
-        }
     }
 }
 

@@ -7,6 +7,12 @@ enum CatalogLoadState: Equatable {
     case failed(String)
 }
 
+struct RankEntry: Identifiable {
+    let name: String
+    let count: Int
+    var id: String { name }
+}
+
 final class ClinicCatalog: ObservableObject {
     @Published private(set) var clinics: [Clinic] = []
     @Published private(set) var loadState: CatalogLoadState = .loading
@@ -32,14 +38,14 @@ final class ClinicCatalog: ObservableObject {
         Self.filter(clinics, query: query, neighborhood: neighborhood, specialty: specialty)
     }
 
-    var specialtyRanking: [(name: String, count: Int)] {
+    var specialtyRanking: [RankEntry] {
         let counts = Dictionary(grouping: clinics.flatMap(\.normalizedSpecialties), by: { $0 }).mapValues(\.count)
-        return counts.map { ($0.key, $0.value) }.sorted { $0.count > $1.count }
+        return counts.map { RankEntry(name: $0.key, count: $0.value) }.sorted { $0.count > $1.count }
     }
 
-    var regionRanking: [(name: String, count: Int)] {
+    var regionRanking: [RankEntry] {
         let counts = Dictionary(grouping: clinics, by: \.displayNeighborhood).mapValues(\.count)
-        return counts.map { ($0.key, $0.value) }.sorted { $0.count > $1.count }
+        return counts.map { RankEntry(name: $0.key, count: $0.value) }.sorted { $0.count > $1.count }
     }
 
     static func filter(_ items: [Clinic], query: String, neighborhood: String = "Todos", specialty: String = "Todos") -> [Clinic] {

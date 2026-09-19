@@ -7,7 +7,7 @@ final class ClinicasBrasiliaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Encontre atendimento no Distrito Federal"].waitForExistence(timeout: 10))
         capture(app, named: "clinicas-home")
 
-        let firstSpecialty = app.buttons.matching(identifier: "specialty-0").firstMatch
+        let firstSpecialty = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'specialty-'")).firstMatch
         if firstSpecialty.waitForExistence(timeout: 5) {
             firstSpecialty.tap()
             let firstRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'row-'")).firstMatch
