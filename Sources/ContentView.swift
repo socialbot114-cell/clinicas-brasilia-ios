@@ -34,6 +34,7 @@ private struct HomeView: View {
                     }
                 }
                 .padding()
+                .safeAreaPadding(.bottom, 96)
             }
             .navigationTitle("Clínicas Brasília")
         }
@@ -52,6 +53,7 @@ private struct ExploreView: View {
                 Section("Resultados") { ForEach(catalog.filtered) { clinic in NavigationLink { ClinicDetailView(clinic: clinic, favorites: favorites) } label: { ClinicCard(clinic: clinic, isFavorite: favorites.contains(clinic.id)) } } }
             }
             .navigationTitle("Explorar")
+            .safeAreaPadding(.bottom, 96)
             .toolbar { if catalog.query.isEmpty == false || catalog.neighborhood != "Todos" || catalog.specialty != "Todos" { Button("Limpar") { catalog.query = ""; catalog.neighborhood = "Todos"; catalog.specialty = "Todos" } } }
         }
     }
