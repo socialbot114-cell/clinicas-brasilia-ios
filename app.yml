@@ -1,0 +1,16 @@
+name: Clínicas Brasília
+product_name: ClinicasBrasilia
+bundle_id: br.com.clinicas.brasilia
+sku: clinicas-brasilia
+app_store_id: "6813989729"
+platform: ios
+deployment_target: "17.0"
+template: ios-swiftui-directory
+catalog:
+  path: Resources/Catalog/catalog.json
+  required_fields: [id, name, source, last_verified]
+privacy_manifest: Resources/PrivacyInfo.xcprivacy
+release:
+  artifact_name: clinicas-brasilia-ios-ipa
+  scheme: ClinicasBrasilia
+  test_destination: "platform=iOS Simulator,name=iPhone 17,OS=latest"
