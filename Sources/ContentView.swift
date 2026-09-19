@@ -25,11 +25,23 @@ private struct HomeView: View {
                         Text("Cuidado perto de você").font(.largeTitle.bold())
                         Text("Encontre clínicas e especialidades em Brasília.").foregroundStyle(.secondary)
                     }
-                    SearchField(text: $catalog.query)
-                    HStack { Text("Clínicas encontradas").font(.title2.bold()); Spacer(); Text("\(catalog.filtered.count)").foregroundStyle(.secondary) }
-                    LazyVStack(spacing: 12) {
-                        ForEach(catalog.filtered.prefix(20)) { clinic in
-                            NavigationLink { ClinicDetailView(clinic: clinic, favorites: favorites) } label: { ClinicCard(clinic: clinic, isFavorite: favorites.contains(clinic.id)) }.buttonStyle(.plain)
+                    switch catalog.loadState {
+                    case .loading:
+                        ProgressView("Carregando catálogo...")
+                    case .failed(let message):
+                        CatalogErrorView(message: message)
+                    case .loaded:
+                        SearchField(text: $catalog.query)
+                        HStack { Text("Clínicas encontradas").font(.title2.bold()); Spacer(); Text("\(catalog.filtered.count)").foregroundStyle(.secondary) }
+                        if catalog.filtered.count > 20 {
+                            Text("Mostrando 20 de \(catalog.filtered.count). Use Explorar para ver todos os resultados.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        LazyVStack(spacing: 12) {
+                            ForEach(catalog.filtered.prefix(20)) { clinic in
+                                NavigationLink { ClinicDetailView(clinic: clinic, favorites: favorites) } label: { ClinicCard(clinic: clinic, isFavorite: favorites.contains(clinic.id)) }.buttonStyle(.plain)
+                            }
                         }
                     }
                 }
@@ -47,10 +59,17 @@ private struct ExploreView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Buscar") { SearchField(text: $catalog.query) }
-                Section("Especialidade") { Picker("Especialidade", selection: $catalog.specialty) { ForEach(catalog.specialties, id: \.self) { Text($0).tag($0) } }.pickerStyle(.navigationLink) }
-                Section("Região") { Picker("Região", selection: $catalog.neighborhood) { ForEach(catalog.neighborhoods, id: \.self) { Text($0).tag($0) } }.pickerStyle(.navigationLink) }
-                Section("Resultados") { ForEach(catalog.filtered) { clinic in NavigationLink { ClinicDetailView(clinic: clinic, favorites: favorites) } label: { ClinicCard(clinic: clinic, isFavorite: favorites.contains(clinic.id)) } } }
+                switch catalog.loadState {
+                case .loading:
+                    ProgressView("Carregando catálogo...")
+                case .failed(let message):
+                    CatalogErrorView(message: message)
+                case .loaded:
+                    Section("Buscar") { SearchField(text: $catalog.query) }
+                    Section("Especialidade") { Picker("Especialidade", selection: $catalog.specialty) { ForEach(catalog.specialties, id: \.self) { Text($0).tag($0) } }.pickerStyle(.navigationLink) }
+                    Section("Região") { Picker("Região", selection: $catalog.neighborhood) { ForEach(catalog.neighborhoods, id: \.self) { Text($0).tag($0) } }.pickerStyle(.navigationLink) }
+                    Section("Resultados") { ForEach(catalog.filtered) { clinic in NavigationLink { ClinicDetailView(clinic: clinic, favorites: favorites) } label: { ClinicCard(clinic: clinic, isFavorite: favorites.contains(clinic.id)) } } }
+                }
             }
             .navigationTitle("Explorar")
             .safeAreaPadding(.bottom, 96)
@@ -89,10 +108,10 @@ private struct ClinicDetailView: View {
                 }
                 if let address = clinic.address, !address.isEmpty { Label(address, systemImage: "mappin.and.ellipse") }
                 if !clinic.specialties.isEmpty { Text("Especialidades").font(.headline); Text(clinic.specialties.joined(separator: ", ")).foregroundStyle(.secondary) }
-                if let verified = clinic.lastVerified.nilIfEmpty { Text("Dados verificados em \(verified)").font(.footnote).foregroundStyle(.secondary) }
+                if let date = clinic.lastVerified.nilIfEmpty { Text("Data informada no catálogo: \(date)").font(.footnote).foregroundStyle(.secondary) }
                 VStack(spacing: 10) {
-                    if let phone = clinic.phone, let url = URL(string: "tel:\(phone.filter { $0.isNumber })") { ActionButton(title: "Ligar", systemImage: "phone", url: url, openURL: openURL) }
-                    if let whatsapp = clinic.whatsapp, let url = URL(string: "https://wa.me/\(whatsapp.filter { $0.isNumber })") { ActionButton(title: "WhatsApp", systemImage: "message", url: url, openURL: openURL) }
+                    if let url = clinic.phoneURL { ActionButton(title: "Ligar", systemImage: "phone", url: url, openURL: openURL) }
+                    if let url = clinic.whatsappURL { ActionButton(title: "WhatsApp", systemImage: "message", url: url, openURL: openURL) }
                     let query = clinic.address ?? "\(clinic.name), Brasília DF"
                     if let url = URL(string: "https://www.google.com/maps/search/?api=1&query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Brasilia")") { ActionButton(title: "Como chegar", systemImage: "map", url: url, openURL: openURL) }
                 }
@@ -123,6 +142,7 @@ private struct ClinicCard: View {
 
 private struct SearchField: View { @Binding var text: String; var body: some View { HStack { Image(systemName: "magnifyingglass"); TextField("Buscar clínica ou especialidade", text: $text).textInputAutocapitalization(.never) }.padding(12).background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 14)) } }
 private struct ActionButton: View { let title: String; let systemImage: String; let url: URL; let openURL: OpenURLAction; var body: some View { Button { openURL(url) } label: { Label(title, systemImage: systemImage).frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent) } }
+private struct CatalogErrorView: View { let message: String; var body: some View { ContentUnavailableView("Catálogo indisponível", systemImage: "exclamationmark.triangle", description: Text(message)) } }
 private extension String { var nilIfEmpty: String? { isEmpty ? nil : self } }
 
 #Preview { ContentView() }

@@ -12,4 +12,43 @@ final class ClinicDomainTests: XCTestCase {
         XCTAssertEqual(clinic.displaySpecialty, "Clínica")
         XCTAssertEqual(clinic.displayNeighborhood, "Distrito Federal")
     }
+
+    func testBrazilianPhoneNormalizationAddsCountryCode() {
+        XCTAssertEqual(BrazilianPhone.normalizedDigits("(61) 3468-1068"), "556134681068")
+        XCTAssertEqual(BrazilianPhone.normalizedDigits("+55 (61) 99646-1234"), "5561996461234")
+        XCTAssertEqual(BrazilianPhone.normalizedDigits("invalid"), nil)
+        XCTAssertNil(BrazilianPhone.normalizedDigits("1234"))
+    }
+
+    func testContactURLsUseBrazilianCountryCode() {
+        let clinic = makeClinic(phone: "(61) 3468-1068", whatsapp: "61 99646-1234")
+        XCTAssertEqual(clinic.phoneURL?.absoluteString, "tel:+556134681068")
+        XCTAssertEqual(clinic.whatsappURL?.absoluteString, "https://wa.me/5561996461234")
+    }
+
+    func testCatalogFiltersQueryAndSelections() {
+        let catalog = ClinicCatalog(clinics: [
+            makeClinic(id: "one", name: "Clinica Central", specialties: ["Endocrinologia"], neighborhood: "Asa Norte"),
+            makeClinic(id: "two", name: "Clinica Sul", specialties: ["Pediatria"], neighborhood: "Asa Sul")
+        ])
+        catalog.query = "endocrinologia"
+        catalog.neighborhood = "Asa Norte"
+        XCTAssertEqual(catalog.filtered.map(\.id), ["one"])
+    }
+
+    func testCatalogReportsMalformedData() {
+        let catalog = ClinicCatalog(data: Data("not-json".utf8))
+        XCTAssertEqual(catalog.loadState, .failed("O catálogo local está indisponível."))
+        XCTAssertTrue(catalog.clinics.isEmpty)
+    }
+
+    func testCatalogLoadsValidData() throws {
+        let catalog = ClinicCatalog(data: try JSONEncoder().encode([makeClinic()]))
+        XCTAssertEqual(catalog.loadState, .loaded)
+        XCTAssertEqual(catalog.clinics.map(\.id), ["one"])
+    }
+
+    private func makeClinic(id: String = "one", name: String = "Clinica", specialties: [String] = [], neighborhood: String? = nil, phone: String? = nil, whatsapp: String? = nil) -> Clinic {
+        Clinic(id: id, name: name, specialties: specialties, neighborhood: neighborhood, address: nil, city: "Brasília", state: "DF", phone: phone, whatsapp: whatsapp, email: nil, mapsRef: nil, source: "test", sourceURL: nil, lastVerified: "2026-01-01", dataStatus: "pending-editorial-review")
+    }
 }

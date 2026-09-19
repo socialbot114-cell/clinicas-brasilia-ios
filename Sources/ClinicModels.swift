@@ -31,6 +31,34 @@ struct Clinic: Codable, Identifiable, Hashable {
     var searchableText: String {
         ([name, displaySpecialty, displayNeighborhood] + specialties + [address ?? ""]).joined(separator: " ").folding(options: .diacriticInsensitive, locale: .current).lowercased()
     }
+
+    var phoneURL: URL? { contactURL(for: phone, scheme: "tel") }
+    var whatsappURL: URL? {
+        guard let number = BrazilianPhone.normalizedDigits(whatsapp) else { return nil }
+        return URL(string: "https://wa.me/\(number)")
+    }
+
+    private func contactURL(for value: String?, scheme: String) -> URL? {
+        guard let number = BrazilianPhone.normalizedDigits(value) else { return nil }
+        return URL(string: "\(scheme):+\(number)")
+    }
+}
+
+enum BrazilianPhone {
+    static func normalizedDigits(_ value: String?) -> String? {
+        guard let value else { return nil }
+        var digits = value.filter(\.isNumber)
+        guard digits.isEmpty == false else { return nil }
+
+        if digits.hasPrefix("55") {
+            return (digits.count == 12 || digits.count == 13) ? digits : nil
+        }
+        if digits.hasPrefix("0") && (digits.count == 11 || digits.count == 12) {
+            digits.removeFirst()
+        }
+        if digits.count == 10 || digits.count == 11 { return "55\(digits)" }
+        return nil
+    }
 }
 
 private extension String { var nilIfEmpty: String? { isEmpty ? nil : self } }
