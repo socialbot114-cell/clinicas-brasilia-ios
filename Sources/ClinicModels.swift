@@ -27,7 +27,10 @@ struct Clinic: Codable, Identifiable, Hashable {
     }
 
     var displayNeighborhood: String { neighborhood?.nilIfEmpty ?? "Distrito Federal" }
-    var displaySpecialty: String { specialties.first?.nilIfEmpty ?? "Clínica" }
+    var displayName: String { Self.titleCased(name) }
+    var normalizedSpecialties: [String] { specialties.filter { !$0.hasPrefix("+") && !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
+    var displaySpecialty: String { normalizedSpecialties.first?.nilIfEmpty ?? "Clínica" }
+    var isVerified: Bool { dataStatus == "verified" }
     var searchableText: String {
         ([name, displaySpecialty, displayNeighborhood] + specialties + [address ?? ""]).joined(separator: " ").folding(options: .diacriticInsensitive, locale: .current).lowercased()
     }
@@ -41,6 +44,16 @@ struct Clinic: Codable, Identifiable, Hashable {
     private func contactURL(for value: String?, scheme: String) -> URL? {
         guard let number = BrazilianPhone.normalizedDigits(value) else { return nil }
         return URL(string: "\(scheme):+\(number)")
+    }
+
+    static func titleCased(_ value: String) -> String {
+        let small = ["da", "de", "do", "das", "dos", "e", "a", "o", "na", "no", "em", "com"]
+        return value.lowercased().split(separator: " ").enumerated().map { index, word in
+            let w = String(word)
+            if index != 0 && small.contains(w) { return w }
+            guard let first = w.first else { return w }
+            return String(first).uppercased() + w.dropFirst()
+        }.joined(separator: " ")
     }
 }
 

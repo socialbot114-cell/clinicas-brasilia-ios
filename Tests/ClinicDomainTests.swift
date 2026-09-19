@@ -48,6 +48,17 @@ final class ClinicDomainTests: XCTestCase {
         XCTAssertEqual(catalog.clinics.map(\.id), ["one"])
     }
 
+    func testDisplayNameTitleCases() {
+        let clinic = makeClinic(name: "CLINICA DA VISTA E SAUDE")
+        XCTAssertEqual(clinic.displayName, "Clinica da Vista e Saude")
+    }
+
+    func testNormalizedSpecialtiesSkipPlaceholders() {
+        let clinic = makeClinic(specialties: ["+1", "Cardiologia", "+2"])
+        XCTAssertEqual(clinic.normalizedSpecialties, ["Cardiologia"])
+        XCTAssertEqual(clinic.displaySpecialty, "Cardiologia")
+    }
+
     private func makeClinic(id: String = "one", name: String = "Clinica", specialties: [String] = [], neighborhood: String? = nil, phone: String? = nil, whatsapp: String? = nil) -> Clinic {
         Clinic(id: id, name: name, specialties: specialties, neighborhood: neighborhood, address: nil, city: "Brasília", state: "DF", phone: phone, whatsapp: whatsapp, email: nil, mapsRef: nil, source: "test", sourceURL: nil, lastVerified: "2026-01-01", dataStatus: "pending-editorial-review")
     }
