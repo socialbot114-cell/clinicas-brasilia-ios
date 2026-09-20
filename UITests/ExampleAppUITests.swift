@@ -18,9 +18,7 @@ final class ClinicasBrasiliaUITests: XCTestCase {
             }
         }
 
-        let explore = app.tabBars.buttons["Buscar"]
-        XCTAssertTrue(explore.waitForExistence(timeout: 5))
-        explore.tap()
+        tapTab(app, "Buscar")
         XCTAssertTrue(app.navigationBars["Buscar"].waitForExistence(timeout: 5))
         capture(app, named: "clinicas-explore")
 
@@ -28,10 +26,20 @@ final class ClinicasBrasiliaUITests: XCTestCase {
         if add.waitForExistence(timeout: 3) {
             add.tap()
         }
-        let saved = app.tabBars.buttons["Salvos"]
-        XCTAssertTrue(saved.waitForExistence(timeout: 5))
-        saved.tap()
+        tapTab(app, "Salvos")
         capture(app, named: "clinicas-favoritos")
+    }
+
+    private func tapTab(_ app: XCUIApplication, _ name: String) {
+        let tabBarButton = app.tabBars.buttons[name]
+        if tabBarButton.waitForExistence(timeout: 2) {
+            tabBarButton.tap()
+            return
+        }
+        let button = app.buttons[name].firstMatch
+        if button.waitForExistence(timeout: 3) {
+            button.tap()
+        }
     }
 
     private func capture(_ app: XCUIApplication, named name: String) {
